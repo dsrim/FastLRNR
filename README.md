@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/867897439.svg)](https://doi.org/10.5281/zenodo.13892195)
+
 # FastLRNR 
 
 This is a code repository for the manuscript _FastLRNR and Sparse Physics
