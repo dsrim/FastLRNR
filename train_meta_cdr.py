@@ -172,9 +172,6 @@ def main():
     nc = 4000
     nt = 20 # divisor of 1000
 
-    #import pdb
-    #pdb.set_trace()
-    
     for ep in range(1, epoch+1):
         net.train()
 

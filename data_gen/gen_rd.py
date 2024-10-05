@@ -7,7 +7,6 @@ from systems import *
 import torch.backends.cudnn as cudnn
 from utils import *
 import matplotlib.pyplot as plt
-import pdb
 import pandas as pd
 
 parser = argparse.ArgumentParser()

@@ -7,7 +7,6 @@ from systems import *
 import torch.backends.cudnn as cudnn
 from utils import *
 import matplotlib.pyplot as plt
-import pdb
 import pandas as pd
 
 
@@ -80,7 +79,6 @@ for i in range(41):
         Exact = u_star.reshape(len(t), len(x)) # Exact on the (x,t) grid
         Exact_test = u_v[1:, 1:].flatten()[:, None]
         Exact_val = u_v[1:, 1:].flatten()[:, None]
-        # pdb.set_trace()
 
         u_test = Exact_test[idx_test]
         X_test = X_star_noinitial_noboundary[idx_test, :]
@@ -159,4 +157,3 @@ for i in range(41):
 
         nu += 1
     beta += 1 
-# pdb.set_trace()
