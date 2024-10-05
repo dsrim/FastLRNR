@@ -1,0 +1,67 @@
+#!/bin/bash
+#BSUB -q subscription
+#BSUB -G compute-rim-t1
+#BSUB -sla rim-t1
+#BSUB -B
+#BSUB -N
+#BSUB -J fl-train
+#BSUB -R 'select[gpuhost]'
+#BSUB -R 'rusage[mem=64GB]'
+#BSUB -W 80:00
+#BSUB -a 'docker(jingyuanzhu/pytorch1.13.1cuda11.6:v1)'
+#BSUB -u rim@wustl.edu
+#BSUB -oo fl_train_meta_out_%J.txt
+#BSUB -eo fl_train_meta_err_%J.txt
+
+i=0
+i_choose=0
+mem_max=0
+file="mem.txt"
+gpu_count=`nvidia-smi --query-gpu=count --format=csv | tail -n1`
+nvidia-smi --query-gpu=memory.free --format=csv | tail -n$gpu_count | cut -f1 -d' ' > mem.txt
+
+while read line; do
+  mem=$(($line))
+  if [ $mem -gt $mem_max ]
+      then 
+          mem_max=$mem
+          i_choose=$i
+  fi
+  i=$((i+ 1))  
+done < "$file"
+
+rm mem.txt
+
+export CUDA_VISIBLE_DEVICES=$i_choose
+echo "choose device "$CUDA_VISIBLE_DEVICES" with mem "$mem_max
+
+PATH=/opt/conda/bin:$PATH
+RUNDIR=$(pwd)
+
+export MPLCONFIGDIR=$RUNDIR
+
+PATH=/opt/conda/bin:$PATH
+RUNDIR=$(pwd)
+hdim=4000
+adim=100
+epoch=20000
+epochstore=10000
+start_coeff_1=1
+end_coeff_1=3
+start_coeff_2=0
+end_coeff_2=2
+start_coeff_3=0
+end_coeff_3=2
+
+cd data_gen && \
+mkdir -p dataset/cdr/train && \
+mkdir -p dataset/cdr/test && \
+mkdir -p dataset/cdr/val && \
+python gen_cdr.py && \
+for regparam in 0.00000001 0.000001 0.00001 0.0001;
+do
+  cd $RUNDIR && \
+  mkdir -p param/phase1/cdr/sin_1 && \
+  mkdir -p log/phase1/cdr/sin_1 && \
+  python train_meta_cdr.py --epoch $epoch --pde_type cdr --init_cond sin_1 --start_coeff_1 $start_coeff_1 --end_coeff_1 $end_coeff_1 --start_coeff_2 $start_coeff_2 --end_coeff_2 $end_coeff_2 --start_coeff_3 $start_coeff_3 --end_coeff_3 $end_coeff_3  --reg_param $regparam --hidden_dim $hdim --alpha_dim $adim; 
+done

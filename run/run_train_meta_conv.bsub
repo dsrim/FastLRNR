@@ -1,0 +1,51 @@
+#!/bin/bash
+#BSUB -q subscription
+#BSUB -G compute-rim-t1
+#BSUB -sla rim-t1
+#BSUB -B
+#BSUB -N
+#BSUB -J fl-train
+#BSUB -R 'select[gpuhost]'
+#BSUB -R 'rusage[mem=64GB]'
+#BSUB -W 80:00
+#BSUB -a 'docker(jingyuanzhu/pytorch1.13.1cuda11.6:v1)'
+#BSUB -u rim@wustl.edu
+#BSUB -oo fl_train_meta_out_%J.txt
+#BSUB -eo fl_train_meta_err_%J.txt
+
+
+i=0
+i_choose=0
+mem_max=0
+file="mem.txt"
+gpu_count=`nvidia-smi --query-gpu=count --format=csv | tail -n1`
+nvidia-smi --query-gpu=memory.free --format=csv | tail -n$gpu_count | cut -f1 -d' ' > mem.txt
+
+while read line; do
+  mem=$(($line))
+  if [ $mem -gt $mem_max ]
+      then 
+          mem_max=$mem
+          i_choose=$i
+  fi
+  i=$((i+ 1))  
+done < "$file"
+
+rm mem.txt
+
+export CUDA_VISIBLE_DEVICES=$i_choose
+echo "choose device "$CUDA_VISIBLE_DEVICES" with mem "$mem_max
+
+PATH=/opt/conda/bin:$PATH
+RUNDIR=$(pwd)
+export MPLCONFIGDIR=$PWD
+
+cd data_gen && \
+mkdir -p dataset/convection/train && \
+mkdir -p dataset/convection/test && \
+mkdir -p dataset/convection/val && \
+python gen_conv.py && \
+cd $RUNDIR && \
+mkdir -p param/phase1/convection/sin_1 && \
+mkdir -p log/phase1/convection/sin_1 && \
+python train_meta_conv.py --hidden_dim 4000 --epoch 20000 --pde_type convection --init_cond sin_1 --start_coeff_1 1 --end_coeff_1 20 --reg_param 0.0000001

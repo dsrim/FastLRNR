@@ -1,0 +1,40 @@
+#!/bin/bash
+#BSUB -q subscription
+#BSUB -G compute-rim-t1
+#BSUB -sla rim-t1
+#BSUB -B
+#BSUB -N
+#BSUB -J fl-train
+#BSUB -R 'select[gpuhost]'
+#BSUB -R 'rusage[mem=64GB]'
+#BSUB -W 80:00
+#BSUB -a 'docker(jingyuanzhu/pytorch1.13.1cuda11.6:v1)'
+#BSUB -u rim@wustl.edu
+#BSUB -oo fl_train_out_%J.txt
+#BSUB -eo fl_train_err_%J.txt
+
+export MPLCONFIGDIR=$PWD/.matplotlib_$TIME
+
+i=0
+i_choose=0
+mem_max=0
+file="mem.txt"
+gpu_count=`nvidia-smi --query-gpu=count --format=csv | tail -n1`
+nvidia-smi --query-gpu=memory.free --format=csv | tail -n$gpu_count | cut -f1 -d' ' > mem.txt
+
+while read line; do
+  mem=$(($line))
+  if [ $mem -gt $mem_max ]
+      then 
+          mem_max=$mem
+          i_choose=$i
+  fi
+  i=$((i+ 1))  
+done < "$file"
+
+rm mem.txt
+
+export CUDA_VISIBLE_DEVICES=$i_choose
+echo "choose device "$CUDA_VISIBLE_DEVICES" with mem "$mem_max
+
+/opt/conda/bin/python fast_lrnr_conv.py
